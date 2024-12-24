@@ -1,11 +1,12 @@
-from fastapi import FastAPI
-from openAI.client import OpenAIClient
-import requests
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from dotenv import load_dotenv
 import os
 
+import requests
+from dotenv import load_dotenv
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+from openAI.client import OpenAIClient
 from prompts.prompts import HAND_PROMPT_3
 
 load_dotenv()
@@ -16,7 +17,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"], 
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -26,12 +27,15 @@ MODEL = "gpt-4o-mini"
 API_KEY = os.getenv("OPENAI_API_KEY")
 RASP_API_URL = os.getenv("RASP_API_URL")
 
+
 @app.get("/")
 def ping():
     return {"response": "OK"}
 
+
 class image(BaseModel):
     data: str
+
 
 @app.post("/upload-image")
 def upload_image(request: image):
@@ -39,12 +43,13 @@ def upload_image(request: image):
         client = OpenAIClient(api_key=API_KEY)
         prompt = IMAGE_PROMPT
         image_data = request.data
-        response = client.process_image(prompt,MODEL,image_data)
+        response = client.process_image(prompt, MODEL, image_data)
         cleaned_response = response.replace("```json", "").replace("```", "").strip()
         print(cleaned_response)
         post_data(cleaned_response)
         return {"response": cleaned_response}
-    
+
+
 def post_data(instructions):
     url = RASP_API_URL
     headers = {"Content-Type": "application/json"}

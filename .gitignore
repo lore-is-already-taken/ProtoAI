@@ -155,7 +155,8 @@ cython_debug/
 
 # Firebase credentials
 # Ignore sensitive Firebase credentials
-credentials/credentials.json  # Firebase credentials (ensure this is excluded for security)
+# Firebase credentials (ensure this is excluded for security)
+credentials/credentials.json 
 
 
 # End of https://mrkandreev.name/snippets/gitignore-generator/#venv,Python

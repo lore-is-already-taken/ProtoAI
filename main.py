@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
-
+from firebase_admin import firestore, credentials, initialize_app
 from prompts.prompts import HAND_PROMPT_3
 
 load_dotenv()
@@ -26,12 +26,27 @@ MODEL = "gpt-4o-mini"
 API_KEY = os.getenv("OPENAI_API_KEY")
 RASP_API_URL = os.getenv("RASP_API_URL")
 
+cred_path = os.getenv("FIREBASE_CREDENTIALS_PATH")
+cred = credentials.Certificate(cred_path)
+initialize_app(cred)
+db = firestore.client()
+
 @app.get("/")
 def ping():
     return {"response": "OK"}
 
 class image(BaseModel):
     data: str
+
+def save_to_firestore(data):
+    try:
+        doc_ref = db.collection("responses").document() 
+        doc_ref.set(data)
+        print("Data saved successfully in Firestore")
+    except Exception as e:
+        print(f"Error saving data to Firestore: {e}")
+
+
 
 @app.post("/upload-image")
 def upload_image(request: image):
@@ -42,7 +57,8 @@ def upload_image(request: image):
         response = client.process_image(prompt,MODEL,image_data)
         cleaned_response = response.replace("```json", "").replace("```", "").strip()
         print(cleaned_response)
-        post_data(cleaned_response)
+        save_to_firestore({"response": cleaned_response})
+        
         return {"response": cleaned_response}
     
 def post_data(instructions):

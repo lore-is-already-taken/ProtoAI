@@ -3,3 +3,4 @@
 .env
 
 credentials/credentials.json
+__pycache__/

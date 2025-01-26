@@ -17,7 +17,7 @@ class OpenAIClient:
         message_content = chat_completion.choices[0].message.content
         return message_content
 
-    def process_image(self, prompt, model, image_url):
+    def process_image(self, prompt, model, image_url) -> str:
         response = openai.chat.completions.create(
             model=model,
             messages=[
@@ -36,4 +36,4 @@ class OpenAIClient:
             ],
             max_tokens=300,
         )
-        return response.choices[0].message.content
+        return response.choices[0].message.content or ""

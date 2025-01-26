@@ -2,7 +2,7 @@ import os
 
 import requests
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -25,7 +25,20 @@ IMAGE_PROMPT = HAND_PROMPT_3
 MODEL = "gpt-4o-mini"
 
 API_KEY = os.getenv("OPENAI_API_KEY")
-RASP_API_URL = os.getenv("RASP_API_URL")
+RASP_API_URL = str(os.getenv("RASP_API_URL"))
+
+
+@app.websocket("/ws")
+async def websocket_server(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_text()
+            print(f"Received keypoints: {data}")  # JSON string
+    except WebSocketDisconnect:
+        print("Client disconnected")
+    finally:
+        await websocket.close()
 
 
 @app.get("/")

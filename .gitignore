@@ -1,16 +1,10 @@
-# Virtualenv
-# http://iamzed.com/2009/05/07/a-primer-on-virtualenv/
-.Python
-[Bb]in
-[Ii]nclude
-[Ll]ib
-[Ll]ib64
-[Ll]ocal
-[Ss]cripts
-pyvenv.cfg
-.venv
-pip-selfcheck.json
+# Created by https://www.toptal.com/developers/gitignore/api/python,venv,pythonvanilla
+# Edit at https://www.toptal.com/developers/gitignore?templates=python,venv,pythonvanilla
 
+ToDo
+
+
+### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -107,7 +101,22 @@ ipython_config.py
 #   install all needed dependencies.
 #Pipfile.lock
 
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow
+# poetry
+#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
+#poetry.lock
+
+# pdm
+#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
+#pdm.lock
+#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
+#   in version control.
+#   https://pdm.fming.dev/#use-with-ide
+.pdm.toml
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
 __pypackages__/
 
 # Celery stuff
@@ -119,6 +128,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env-example
 .venv
 env/
 venv/
@@ -150,14 +160,60 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# Obsidian
-.obsidian
+# PyCharm
+#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
+#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+#  and can be added to the global gitignore or merged into this file.  For a more nuclear
+#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
+#.idea/
 
-# Firebase credentials
-# Ignore sensitive Firebase credentials
-# Firebase credentials (ensure this is excluded for security)
-credentials/credentials.json 
+### Python Patch ###
+# Poetry local configuration file - https://python-poetry.org/docs/configuration/#local-configuration
+poetry.toml
+
+# ruff
+.ruff_cache/
+
+# LSP config files
+pyrightconfig.json
+
+### PythonVanilla ###
+# Byte-compiled / optimized / DLL files
+
+# C extensions
+
+# Distribution / packaging
+
+# Installer logs
+
+# Unit test / coverage reports
+
+# Translations
+
+# pyenv
+#   For a library or package, you might want to ignore these files since the code is
+#   intended to run in multiple environments; otherwise, check them in:
+# .python-version
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow
 
 
-# End of https://mrkandreev.name/snippets/gitignore-generator/#venv,Python
+### venv ###
+# Virtualenv
+# http://iamzed.com/2009/05/07/a-primer-on-virtualenv/
+[Bb]in
+[Ii]nclude
+[Ll]ib
+[Ll]ib64
+[Ll]ocal
+[Ss]cripts
+pyvenv.cfg
+pip-selfcheck.json
 
+# End of https://www.toptal.com/developers/gitignore/api/python,venv,pythonvanilla

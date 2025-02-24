@@ -53,6 +53,7 @@ def ping():
     return {"response": "OK"}
 
 
+# Please, create the models in another location
 class image(BaseModel):
     data: str
 

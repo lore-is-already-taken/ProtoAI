@@ -3,7 +3,7 @@ name: Notify Discord on Merged Pull Requests
 on:
   pull_request:
     types:
-      - closed  # Se activa cuando el PR se cierra (mergeado o rechazado)
+      - closed  # Activates when the PR is closed (merged or rejected)
 
 jobs:
   notify:
@@ -16,5 +16,5 @@ jobs:
         run: |
           curl -H "Content-Type: application/json" -X POST -d '{
             "username": "GitHub Bot",
-            "content": "✅ **Pull Request Mergeado!** 🎉\n🔗 [${{ github.event.pull_request.title }}](${{ github.event.pull_request.html_url }})\n👤 Autor: ${{ github.event.pull_request.user.login }}\n🔀 Rama: ${{ github.event.pull_request.base.ref }}"
+            "content": "✅ **Pull Request Merged!** 🎉\n🔗 [${{ github.event.pull_request.title }}](${{ github.event.pull_request.html_url }})\n👤 Autor: ${{ github.event.pull_request.user.login }}\n🔀 Rama: ${{ github.event.pull_request.base.ref }}"
           }' "$DISCORD_WEBHOOK"

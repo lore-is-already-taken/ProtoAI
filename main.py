@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from firebase_admin import credentials, firestore, initialize_app
 from pydantic import BaseModel
 
+from firebase import save_to_firestore
+from models import ImageRequest
 from openAI.client import OpenAIClient
 from prompts.prompts import HAND_PROMPT_3
 
@@ -68,7 +70,7 @@ def save_to_firestore(data):
 
 
 @app.post("/upload-image")
-def upload_image(request: image):
+def upload_image(request: ImageRequest):
     if request.data:
         client = OpenAIClient(api_key=API_KEY)
         prompt = IMAGE_PROMPT

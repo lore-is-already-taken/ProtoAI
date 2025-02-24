@@ -216,4 +216,9 @@ pyrightconfig.json
 pyvenv.cfg
 pip-selfcheck.json
 
+# Firebase credentials
+credentials/credentials.json
+
+
+
 # End of https://www.toptal.com/developers/gitignore/api/python,venv,pythonvanilla

@@ -14,5 +14,5 @@ jobs:
         run: |
           curl -H "Content-Type: application/json" -X POST -d '{
             "username": "GitHub Bot",
-            "content": "🚀 A new push has been made to the repository! 🦾🎉\n🔗 [View Commit]('"${{ github.event.repository.html_url }}/commit/${{ github.sha }}"')"
+            "content": "🚀 A new push has been made to the repository! 🦾 🎉\n🔗 [View Commit]('"${{ github.event.repository.html_url }}/commit/${{ github.sha }}"')"
           }' $DISCORD_WEBHOOK

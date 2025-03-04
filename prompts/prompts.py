@@ -301,3 +301,24 @@ Examples of Hand Movements Through Objects or Symbols:
             Role of Fingers: The middle finger is used to make a rude or offensive gesture, often conveying disrespect or anger, while the other fingers stay curled to emphasize the gesture.
             Meaning: Generally considered a vulgar gesture in many cultures, representing disrespect or defiance.
 """
+
+
+OBJECT_DETECTION_PROMPT = """
+Analyze the image and identify the primary object.
+Respond only in this format: "Detected object: [object name]"
+Do not include any extra text.
+"""
+
+MOVEMENT_ANALYSIS_PROMPT = """
+You control a prosthetic hand with five fingers: thumb, index, middle, ring, and pinky.
+The hand can open, close, or perform specific gestures.
+
+Given that the detected object is: "{detected_object}", determine the optimal movement the hand should perform.
+
+Respond only in this format: "Suggested movement: [movement description]"
+
+Example responses:
+- If the object is a bottle: "Suggested movement: grasp the bottle with a firm grip"
+- If the object is a peace sign: "Suggested movement: replicate the peace sign"
+- If the object is unknown: "Suggested movement: remain in a resting position"
+"""

@@ -20,9 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-IMAGE_PROMPT = HAND_PROMPT_3
 MODEL = "gpt-4o-mini"
-
 API_KEY = os.getenv("OPENAI_API_KEY")
 RASP_API_URL = os.getenv("RASP_API_URL")
 
@@ -47,26 +45,28 @@ async def websocket_server(websocket: WebSocket):
 def upload_image(request: ImageRequest):
     if request.data:
         client = OpenAIClient(api_key=API_KEY)
-        prompt = IMAGE_PROMPT
         image_data = request.data
-        response = client.process_image(prompt, MODEL, image_data)
-        cleaned_response = response.replace("```json", "").replace("```", "").strip()
-        print(cleaned_response)
-        save_to_firestore({"response": cleaned_response})
-        
-        return {"response": cleaned_response}
 
-def post_data(instructions):
-    url = RASP_API_URL
-    headers = {"Content-Type": "application/json"}
+        # 1️⃣ Detect the object
+        detected_object_response = client.detect_object(MODEL, image_data)
+        detected_object = client.extract_object_from_response(detected_object_response)
 
-    payload = {"data": instructions}
+        # 2️⃣ Ask OpenAI what movement to perform
+        suggested_movement_response = client.generate_suggested_movement(MODEL, detected_object)
+        suggested_movement = client.extract_suggested_movement(suggested_movement_response)
 
-    response = requests.post(url, json=payload, headers=headers)
+        # 3️⃣ Generate hand movements based on the object
+        hand_movements_response = client.generate_hand_movements(HAND_PROMPT_3, MODEL, image_data)
+        cleaned_hand_movements = hand_movements_response.replace("```json", "").replace("```", "").strip()
 
-    if response.status_code == 200:
-        print("Data sent successfully")
-        print(response.json())
-    else:
-        print("Error sending data")
-        print(response.json())
+        # 4️⃣ Save the final response in Firebase
+        final_response = {
+            "hand_movements": cleaned_hand_movements,
+            "image_analysis": {
+                "detected_object": detected_object,
+                "suggested_movement": suggested_movement
+            }
+        }
+
+        save_to_firestore(final_response)
+        return final_response

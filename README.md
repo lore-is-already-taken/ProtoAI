@@ -2,7 +2,7 @@
 
 ### ProtoAI is an open-source project developed during the Chilean OpenAI Hackathon in 2024. This project aims to solve challenges related to prosthetics and other issues associated with various human disabilities.
 
-## How to Run the FastAPI Project
+## 🚀 How to Run the FastAPI Project
 
 To set up and run the FastAPI application, follow these steps:
 
@@ -33,7 +33,8 @@ touch .env
   ```
 write your apikey into the `.env` file
   ```bash
-echo OPENAI_API_KEY="your_api_key_here" > .env
+echo OPENAI_API_KEY="your_api_key_here" >> .env
+echo FIREBASE_CREDENTIALS_PATH="credentials/credentials.json" >> .env
   ```
 
 ### 5. Run the Application

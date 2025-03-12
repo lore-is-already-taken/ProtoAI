@@ -49,3 +49,7 @@ uvicorn main:app --reload
 ### 7. License
 This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
 
+## Contributors ✨
+Thanks to everyone who contributed to this project! 💙  
+
+![GitHub Contributors](https://contrib.rocks/image?repo=ProtoAI-cl/ProtoAI)

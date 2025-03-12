@@ -52,6 +52,4 @@ This project is licensed under the MIT License. See the [LICENSE](./LICENSE) fil
 ## Contributors ✨
 Thanks to everyone who contributed to this project! 💙  
 
-![GitHub Contributors](https://contrib.rocks/image?repo=ProtoAI-cl/ProtoAI)
-
-![GitHub contributors](https://img.shields.io/github/contributors/ProtoAI-cl/ProtoAI)
+[![GitHub Contributors](https://contrib.rocks/image?repo=ProtoAI-cl/ProtoAI)](https://github.com/ProtoAI-cl/ProtoAI/graphs/contributors)

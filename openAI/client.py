@@ -1,8 +1,11 @@
-import openai
 import json
 import re
+
+import openai
+
+from prompts.prompts import MOVEMENT_ANALYSIS_PROMPT, OBJECT_DETECTION_PROMPT
 from utils.images import encode_image
-from prompts.prompts import OBJECT_DETECTION_PROMPT, MOVEMENT_ANALYSIS_PROMPT
+
 
 class OpenAIClient:
     def __init__(self, api_key):
@@ -15,10 +18,13 @@ class OpenAIClient:
             response = openai.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "user", "content": [
-                        {"type": "text", "text": OBJECT_DETECTION_PROMPT},
-                        {"type": "image_url", "image_url": {"url": image_url}}
-                    ]}
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": OBJECT_DETECTION_PROMPT},
+                            {"type": "image_url", "image_url": {"url": image_url}},
+                        ],
+                    }
                 ],
                 max_tokens=50,
             )
@@ -34,7 +40,9 @@ class OpenAIClient:
 
     def generate_suggested_movement(self, model, detected_object):
         """Asks OpenAI what the prosthetic hand should do with the detected object."""
-        movement_prompt = MOVEMENT_ANALYSIS_PROMPT.format(detected_object=detected_object)
+        movement_prompt = MOVEMENT_ANALYSIS_PROMPT.format(
+            detected_object=detected_object
+        )
 
         try:
             response = openai.chat.completions.create(
@@ -58,10 +66,13 @@ class OpenAIClient:
             response = openai.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "user", "content": [
-                        {"type": "text", "text": prompt},
-                        {"type": "image_url", "image_url": {"url": image_url}}
-                    ]}
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {"type": "image_url", "image_url": {"url": image_url}},
+                        ],
+                    }
                 ],
                 max_tokens=300,
             )
@@ -77,10 +88,12 @@ class OpenAIClient:
 
     def extract_object_from_response(self, response_text):
         """Extracts the detected object name from OpenAI's response."""
-        match = re.search(r'Detected object:\s*([\w\s]+)', response_text, re.IGNORECASE)
+        match = re.search(r"Detected object:\s*([\w\s]+)", response_text, re.IGNORECASE)
         return match.group(1).strip() if match else "unknown"
 
     def extract_suggested_movement(self, response_text):
         """Extracts the suggested movement from OpenAI's response."""
-        match = re.search(r'Suggested movement:\s*([\w\s]+)', response_text, re.IGNORECASE)
+        match = re.search(
+            r"Suggested movement:\s*([\w\s]+)", response_text, re.IGNORECASE
+        )
         return match.group(1).strip() if match else "none"

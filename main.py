@@ -1,11 +1,12 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from openAI.client import OpenAIClient
-import requests
-from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 import os
-from models import ImageRequest
+
+from dotenv import load_dotenv
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+
 from firebase import save_to_firestore
+from models import ImageRequest
+from openAI.client import OpenAIClient
 from prompts.prompts import HAND_PROMPT_3
 
 load_dotenv()
@@ -16,7 +17,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"], 
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -24,9 +25,11 @@ MODEL = "gpt-4o-mini"
 API_KEY = os.getenv("OPENAI_API_KEY")
 RASP_API_URL = os.getenv("RASP_API_URL")
 
+
 @app.get("/")
 def ping():
     return {"response": "OK"}
+
 
 @app.websocket("/ws")
 async def websocket_server(websocket: WebSocket):
@@ -41,6 +44,7 @@ async def websocket_server(websocket: WebSocket):
     finally:
         await websocket.close()
 
+
 @app.post("/upload-image")
 def upload_image(request: ImageRequest):
     if request.data:
@@ -52,20 +56,29 @@ def upload_image(request: ImageRequest):
         detected_object = client.extract_object_from_response(detected_object_response)
 
         # 2️⃣ Ask OpenAI what movement to perform
-        suggested_movement_response = client.generate_suggested_movement(MODEL, detected_object)
-        suggested_movement = client.extract_suggested_movement(suggested_movement_response)
+        suggested_movement_response = client.generate_suggested_movement(
+            MODEL, detected_object
+        )
+        suggested_movement = client.extract_suggested_movement(
+            suggested_movement_response
+        )
 
         # 3️⃣ Generate hand movements based on the object
-        hand_movements_response = client.generate_hand_movements(HAND_PROMPT_3, MODEL, image_data)
-        cleaned_hand_movements = hand_movements_response.replace("```json", "").replace("```", "").strip()
+        hand_movements_response = client.generate_hand_movements(
+            HAND_PROMPT_3, MODEL, image_data
+        )
+        cleaned_hand_movements = (
+            hand_movements_response.replace("```json", "").replace("```", "").strip()
+        )
 
         # 4️⃣ Save the final response in Firebase
         final_response = {
             "hand_movements": cleaned_hand_movements,
             "image_analysis": {
                 "detected_object": detected_object,
-                "suggested_movement": suggested_movement
-            }
+                "suggested_movement": suggested_movement,
+            },
+            "provided_image": image_data,
         }
 
         save_to_firestore(final_response)

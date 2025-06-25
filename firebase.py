@@ -1,6 +1,7 @@
 import os
-from firebase_admin import firestore, credentials, initialize_app
+
 from dotenv import load_dotenv
+from firebase_admin import credentials, firestore, initialize_app
 
 load_dotenv()
 
@@ -9,6 +10,7 @@ cred_path = os.getenv("FIREBASE_CREDENTIALS_PATH")
 cred = credentials.Certificate(cred_path)
 initialize_app(cred)
 db = firestore.client()
+
 
 def save_to_firestore(data):
     """Saves data to Firestore with tags and custom doc ID based on detected_object."""

@@ -21,7 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MODEL = "gpt-4o-mini"
+MODEL = "gpt-4o"
 API_KEY = os.getenv("OPENAI_API_KEY")
 RASP_API_URL = os.getenv("RASP_API_URL")
 
@@ -48,16 +48,19 @@ async def websocket_server(websocket: WebSocket):
 @app.post("/upload-image")
 def upload_image(request: ImageRequest):
     if request.data:
+        # Usar modelo enviado desde el frontend, o por defecto usar el predefinido
+        selected_model = request.model or MODEL
+
         client = OpenAIClient(api_key=API_KEY)
         image_data = request.data
 
         # 1️⃣ Detect the object
-        detected_object_response = client.detect_object(MODEL, image_data)
+        detected_object_response = client.detect_object(selected_model, image_data)
         detected_object = client.extract_object_from_response(detected_object_response)
 
         # 2️⃣ Ask OpenAI what movement to perform
         suggested_movement_response = client.generate_suggested_movement(
-            MODEL, detected_object
+            selected_model, detected_object
         )
         suggested_movement = client.extract_suggested_movement(
             suggested_movement_response
@@ -65,7 +68,7 @@ def upload_image(request: ImageRequest):
 
         # 3️⃣ Generate hand movements based on the object
         hand_movements_response = client.generate_hand_movements(
-            HAND_PROMPT_3, MODEL, image_data
+            HAND_PROMPT_3, selected_model, image_data
         )
         cleaned_hand_movements = (
             hand_movements_response.replace("```json", "").replace("```", "").strip()
@@ -79,6 +82,7 @@ def upload_image(request: ImageRequest):
                 "suggested_movement": suggested_movement,
             },
             "provided_image": image_data,
+            "llm_model": selected_model,  # Model used for LLM
         }
 
         save_to_firestore(final_response)

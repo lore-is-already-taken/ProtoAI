@@ -1,7 +1,7 @@
 import os
-
 from dotenv import load_dotenv
 from firebase_admin import credentials, firestore, initialize_app
+from datetime import datetime
 
 load_dotenv()
 
@@ -12,26 +12,23 @@ initialize_app(cred)
 db = firestore.client()
 
 
-def save_to_firestore(data):
-    """Saves data to Firestore with tags and custom doc ID based on detected_object."""
+def save_to_firestore(data, collection="responses"):
+    """Saves data to Firestore in the specified collection with tags and a custom doc ID."""
     try:
-        # Obtener objeto detectado y sanitizarlo
         detected_object = data.get("image_analysis", {}).get("detected_object", "").strip().lower()
         if not detected_object or detected_object == "unknown":
             detected_object = "unlabeled"
 
-        # Crear campo de etiquetas (solo el objeto detectado por ahora)
-        data["tags"] = [detected_object]
+        existing_tags = data.get("tags", [])
+        tags = set(existing_tags + [detected_object])  # evitar duplicados
+        data["tags"] = list(tags)
 
-        # Crear un ID de documento legible
-        from datetime import datetime
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         doc_id = f"{detected_object}_{timestamp}"
 
-        # Guardar en Firestore
-        doc_ref = db.collection("responses").document(doc_id)
+        doc_ref = db.collection(collection).document(doc_id)
         doc_ref.set(data)
 
-        print(f"✅ Data saved with doc ID: {doc_id} and tag: {detected_object}")
+        print(f"✅ Data saved with doc ID: {doc_id} in collection: {collection}")
     except Exception as e:
         print(f"❌ Error saving data to Firestore: {e}")

@@ -16,7 +16,9 @@ def save_to_firestore(data):
     """Saves data to Firestore with tags and custom doc ID based on detected_object."""
     try:
         # Obtener objeto detectado y sanitizarlo
-        detected_object = data.get("image_analysis", {}).get("detected_object", "").strip().lower()
+        detected_object = (
+            data.get("image_analysis", {}).get("detected_object", "").strip().lower()
+        )
         if not detected_object or detected_object == "unknown":
             detected_object = "unlabeled"
 
@@ -25,6 +27,7 @@ def save_to_firestore(data):
 
         # Crear un ID de documento legible
         from datetime import datetime
+
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         doc_id = f"{detected_object}_{timestamp}"
 

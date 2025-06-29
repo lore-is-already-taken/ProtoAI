@@ -24,7 +24,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MODEL = "gpt-4.1-nano"
+MODEL = "gpt-4o-mini"
 API_KEY = os.getenv("OPENAI_API_KEY")
 RASP_API_URL = os.getenv("RASP_API_URL")
 
@@ -50,41 +50,18 @@ def get_emg_context(label_detected: str) -> Optional[str]:
         print(f"⚠️ No EMG mapping for label: '{label_detected}'")
         return None
 
+    # Recopilar información de todos los sujetos para ese ejercicio
     context_lines = []
     docs = db.collection("emg_signals").stream()
     for doc in docs:
         emg_data = doc.to_dict()
-        if emg_data.get("exercise") != matched_exercise:
-            continue
-
-        subject = emg_data.get("subject", "unknown")
-        shape = emg_data.get("shape", [])
-        emg_by_channel = emg_data.get("emg_by_channel", {})
-
-        channel_summaries = []
-        for i in range(10):  # ch0 to ch9
-            ch_key = f"ch{i}"
-            ch_values = emg_by_channel.get(ch_key, [])[:100]  # usamos 100 muestras para estadísticas
-            if ch_values:
-                try:
-                    ch_mean = round(statistics.mean(ch_values), 6)
-                    ch_std = round(statistics.stdev(ch_values), 6) if len(ch_values) > 1 else 0.0
-                    ch_sample = [round(v, 6) for v in ch_values[:5]]
-                except Exception as e:
-                    print(f"❌ Error processing {ch_key} for subject {subject}: {e}")
-                    ch_mean = ch_std = 0.0
-                    ch_sample = []
-            else:
-                ch_mean = ch_std = 0.0
-                ch_sample = []
-
-            channel_summaries.append(
-                f"{ch_key}: sample={ch_sample}, mean={ch_mean}, std={ch_std}"
+        if emg_data.get("exercise") == matched_exercise:
+            subject = emg_data.get("subject", "unknown")
+            shape = emg_data.get("shape", [])
+            ch0 = emg_data.get("emg_by_channel", {}).get("ch0", [])[:5]
+            context_lines.append(
+                f"- Subject {subject}, shape {shape}, ch0 sample: {ch0}"
             )
-
-        context_lines.append(
-            f"- Subject {subject}, shape {shape}\n  " + "\n  ".join(channel_summaries)
-        )
 
     if not context_lines:
         print(f"⚠️ No EMG document found for exercise: '{matched_exercise}'")
@@ -92,12 +69,13 @@ def get_emg_context(label_detected: str) -> Optional[str]:
 
     emg_context = (
         f"Exercise {matched_exercise} from NinaPro DB1 was matched to the detected object.\n"
-        f"Multiple subjects recorded EMG signals as follows:\n" +
-        "\n".join(context_lines) +
-        "\nUse this signal information to refine the hand movement instruction."
+        "Multiple subjects recorded EMG signals as follows:\n"
+        + "\n".join(context_lines)
+        + "\nUse this signal information to refine the hand movement instruction."
     )
 
     return emg_context
+
 
 @app.get("/")
 def ping():

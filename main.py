@@ -1,7 +1,6 @@
 import os
 import time
-from typing import Optional
-import statistics
+from typing import Optional, Tuple
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -24,58 +23,63 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MODEL = "gpt-4o-mini"
+MODEL = "gpt-4.1-nano"
 API_KEY = os.getenv("OPENAI_API_KEY")
 RASP_API_URL = os.getenv("RASP_API_URL")
 
 
-def get_emg_context(label_detected: str) -> Optional[str]:
+def get_emg_context(label_detected: str) -> Optional[Tuple[str, str]]:
     tag_to_exercise = {
-        "bottle": "E2",
-        "cup": "E3",
-        "phone": "E5",
-        # Agrega más si es necesario
+        "bottle": ["E2", "EA1"],
+        "cup": ["E3", "EA2"],
+        "phone": ["E5", "EA5"],
     }
 
     label = label_detected.lower()
-    matched_exercise = None
+    matched_exercises = next((e for k, e in tag_to_exercise.items() if k in label), None)
 
-    for keyword, exercise in tag_to_exercise.items():
-        if keyword in label:
-            matched_exercise = exercise
-            print(f"✅ EMG match: '{keyword}' in '{label_detected}' → {exercise}")
-            break
-
-    if not matched_exercise:
+    if not matched_exercises:
         print(f"⚠️ No EMG mapping for label: '{label_detected}'")
         return None
 
-    # Recopilar información de todos los sujetos para ese ejercicio
     context_lines = []
-    docs = db.collection("emg_signals").stream()
-    for doc in docs:
-        emg_data = doc.to_dict()
-        if emg_data.get("exercise") == matched_exercise:
+    used_sources = set()
+
+    for collection_name in ["emg_signals", "emg_signals_db2"]:
+        docs = db.collection(collection_name).stream()
+        for doc in docs:
+            emg_data = doc.to_dict()
+            exercise_val = emg_data.get("exercise", "")
+            if exercise_val not in matched_exercises:
+                continue
+
             subject = emg_data.get("subject", "unknown")
             shape = emg_data.get("shape", [])
-            ch0 = emg_data.get("emg_by_channel", {}).get("ch0", [])[:5]
+            emg_channels = emg_data.get("emg_by_channel", {})
+
+            # Construir un resumen de todos los canales disponibles
+            all_channels = [
+                f"ch{i}: {emg_channels.get(f'ch{i}', [])[:3]}" 
+                for i in range(len(emg_channels))
+            ]
             context_lines.append(
-                f"- Subject {subject}, shape {shape}, ch0 sample: {ch0}"
+                f"- {collection_name.upper()} / Subject {subject}, shape {shape}, " +
+                " | ".join(all_channels)
             )
+            used_sources.add(collection_name.upper())
 
     if not context_lines:
-        print(f"⚠️ No EMG document found for exercise: '{matched_exercise}'")
+        print(f"⚠️ No EMG document found for exercises: {matched_exercises}")
         return None
 
     emg_context = (
-        f"Exercise {matched_exercise} from NinaPro DB1 was matched to the detected object.\n"
-        "Multiple subjects recorded EMG signals as follows:\n"
-        + "\n".join(context_lines)
-        + "\nUse this signal information to refine the hand movement instruction."
+        f"Exercises {', '.join(matched_exercises)} matched to the detected object.\n"
+        "EMG signals were retrieved from the following sources:\n" +
+        "\n".join(context_lines) +
+        "\nUse this signal information to refine the hand movement instruction."
     )
 
-    return emg_context
-
+    return emg_context, ", ".join(sorted(used_sources))
 
 @app.get("/")
 def ping():
@@ -139,8 +143,10 @@ def upload_image(request: ImageRequest):
     save_to_firestore(vision_result, collection="responses")
 
     # 5️⃣ Intentar generar respuesta fusionada con EMG
-    emg_context = get_emg_context(detected_object)
-    if emg_context:
+    emg_result_tuple = get_emg_context(detected_object)
+    if emg_result_tuple:
+        emg_context, emg_source = emg_result_tuple
+        print(f"✅ EMG sources used: {emg_source}")
         print("🔬 EMG context retrieved. Generating fused response...")
         fusion_prompt = HAND_PROMPT_EMG_FUSION.replace("{EMG_CONTEXT}", emg_context)
         emg_response = client.generate_hand_movements(
@@ -156,10 +162,11 @@ def upload_image(request: ImageRequest):
                 "detected_object": detected_object,
                 "suggested_movement": suggested_movement,
                 "emg_context": emg_context,
+                "emg_source": emg_source,
             },
             "provided_image": image_data,
             "llm_model": selected_model,
-            "tags": [detected_object.lower(), selected_model, "fusion_emg"],
+            "tags": [detected_object.lower(), selected_model, emg_source, "fusion_emg"],
             "processing_time_seconds": round(time.time() - start_time, 2),
         }
         save_to_firestore(emg_result, collection="responses_emg_llm")

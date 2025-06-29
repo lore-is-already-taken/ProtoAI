@@ -348,13 +348,14 @@ You will receive two forms of input:
 
 1. <image_description>: A short visual description extracted by a multimodal LLM model, describing the object or scene detected in the image (e.g., "a person reaching for a plastic bottle", or "a phone placed on a table").
 
-2. <emg_context>: A textual summary of EMG signal information from the NinaPro DB1 dataset, including:
+2. <emg_context>: A textual summary of EMG signal information extracted from one of the NinaPro datasets (DB1 or DB2). This includes:
     - The exercise number (e.g., E2 for grasping a bottle)
     - The subject ID
-    - The matrix shape (e.g., 3000 x 10)
+    - The matrix shape (e.g., 3000 x 10 for DB1, or 2000 x 12 for DB2)
     - A brief numerical glimpse of channel activity (e.g., "ch0": [0.12, 0.18, 0.24, 0.11...])
+    - An explicit note of the source: either DB1 or DB2
 
-NinaPro DB1 is a benchmark dataset capturing 52 distinct hand and wrist movements from 27 human subjects. EMG signals are recorded using 10 electrodes placed on the forearm, capturing rich myoelectric patterns during functional activities.
+NinaPro DB1 and DB2 are benchmark datasets capturing dozens of functional hand and wrist movements through surface EMG. DB1 includes 10 channels from 27 subjects, while DB2 includes 12 channels from 40 subjects and adds inertial and force data. EMG signals are recorded using standard anatomical placements across the forearm.
 
 — Your Reasoning Must Follow This Process —
 
@@ -371,7 +372,7 @@ NinaPro DB1 is a benchmark dataset capturing 52 distinct hand and wrist movement
         - Contact points and motion required
 
 2. **Physiological Reasoning (EMG Context Analysis)**
-    - Read the EMG summary (exercise code and signal characteristics).
+    - Read the EMG summary (exercise code, dataset, signal characteristics).
     - Use the signal pattern to interpret muscle effort, grip strength, and channel activation.
     - Higher values in initial EMG samples suggest forceful contractions.
     - Channel indices correspond to spatial placement on the forearm; high ch0 may indicate activation of flexors affecting index/thumb.
@@ -411,7 +412,7 @@ image_description:
 “A person is reaching for a 500 ml plastic water bottle”
 
 emg_context:
-“Exercise E2, Subject 5, shape: (3000, 10), ch0 values: [0.12, 0.19, 0.27, 0.23, 0.10, ...]”
+“Exercise E2, Subject 5, shape: (3000, 10), ch0 values: [0.12, 0.19, 0.27, 0.23, 0.10, ...] from DB1”
 
 Expected interpretation:
 - Visual: cylindrical object → power grip

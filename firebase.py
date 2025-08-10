@@ -1,7 +1,8 @@
 import os
+from datetime import datetime
+
 from dotenv import load_dotenv
 from firebase_admin import credentials, firestore, initialize_app
-from datetime import datetime
 
 load_dotenv()
 
@@ -15,7 +16,9 @@ db = firestore.client()
 def save_to_firestore(data, collection="responses"):
     """Saves data to Firestore in the specified collection with tags and a custom doc ID."""
     try:
-        detected_object = data.get("image_analysis", {}).get("detected_object", "").strip().lower()
+        detected_object = (
+            data.get("image_analysis", {}).get("detected_object", "").strip().lower()
+        )
         if not detected_object or detected_object == "unknown":
             detected_object = "unlabeled"
 

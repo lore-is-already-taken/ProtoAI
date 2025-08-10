@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from firebase import save_to_firestore, db
+from firebase import db, save_to_firestore
 from models import ImageRequest
 from openAI.client import OpenAIClient
 from prompts.prompts import HAND_PROMPT_3, HAND_PROMPT_EMG_FUSION
@@ -36,7 +36,9 @@ def get_emg_context(label_detected: str) -> Optional[Tuple[str, str]]:
     }
 
     label = label_detected.lower()
-    matched_exercises = next((e for k, e in tag_to_exercise.items() if k in label), None)
+    matched_exercises = next(
+        (e for k, e in tag_to_exercise.items() if k in label), None
+    )
 
     if not matched_exercises:
         print(f"⚠️ No EMG mapping for label: '{label_detected}'")
@@ -59,12 +61,12 @@ def get_emg_context(label_detected: str) -> Optional[Tuple[str, str]]:
 
             # Construir un resumen de todos los canales disponibles
             all_channels = [
-                f"ch{i}: {emg_channels.get(f'ch{i}', [])[:3]}" 
+                f"ch{i}: {emg_channels.get(f'ch{i}', [])[:3]}"
                 for i in range(len(emg_channels))
             ]
             context_lines.append(
-                f"- {collection_name.upper()} / Subject {subject}, shape {shape}, " +
-                " | ".join(all_channels)
+                f"- {collection_name.upper()} / Subject {subject}, shape {shape}, "
+                + " | ".join(all_channels)
             )
             used_sources.add(collection_name.upper())
 
@@ -74,12 +76,13 @@ def get_emg_context(label_detected: str) -> Optional[Tuple[str, str]]:
 
     emg_context = (
         f"Exercises {', '.join(matched_exercises)} matched to the detected object.\n"
-        "EMG signals were retrieved from the following sources:\n" +
-        "\n".join(context_lines) +
-        "\nUse this signal information to refine the hand movement instruction."
+        "EMG signals were retrieved from the following sources:\n"
+        + "\n".join(context_lines)
+        + "\nUse this signal information to refine the hand movement instruction."
     )
 
     return emg_context, ", ".join(sorted(used_sources))
+
 
 @app.get("/")
 def ping():

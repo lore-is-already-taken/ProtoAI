@@ -1,3 +1,4 @@
+# Import necessary modules and dependencies
 import os
 import time
 from typing import Optional, Tuple
@@ -6,15 +7,18 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from firebase import db, save_to_firestore
+from app.firebase.firestore import db, save_to_firestore
 from models import ImageRequest
 from openAI.client import OpenAIClient
 from prompts.prompts import HAND_PROMPT_3, HAND_PROMPT_EMG_FUSION
 
+# Load environment variables from .env file
 load_dotenv()
 
+# Initialize FastAPI application
 app = FastAPI()
 
+# Configure CORS middleware to allow all origins and methods
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,12 +27,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Set model and API keys from environment variables
 MODEL = "gpt-4.1-nano"
 API_KEY = os.getenv("OPENAI_API_KEY")
 RASP_API_URL = os.getenv("RASP_API_URL")
 
 
 def get_emg_context(label_detected: str) -> Optional[Tuple[str, str]]:
+    """
+    Retrieve EMG signal context based on the detected object label.
+    Returns a tuple containing the EMG context string and the sources used.
+    """
     tag_to_exercise = {
         "bottle": ["E2", "EA1"],
         "cup": ["E3", "EA2"],
@@ -47,6 +56,7 @@ def get_emg_context(label_detected: str) -> Optional[Tuple[str, str]]:
     context_lines = []
     used_sources = set()
 
+    # Iterate through EMG signal collections to find relevant data
     for collection_name in ["emg_signals", "emg_signals_db2"]:
         docs = db.collection(collection_name).stream()
         for doc in docs:
@@ -59,7 +69,7 @@ def get_emg_context(label_detected: str) -> Optional[Tuple[str, str]]:
             shape = emg_data.get("shape", [])
             emg_channels = emg_data.get("emg_by_channel", {})
 
-            # Construir un resumen de todos los canales disponibles
+            # Build a summary of available EMG channels
             all_channels = [
                 f"ch{i}: {emg_channels.get(f'ch{i}', [])[:3]}"
                 for i in range(len(emg_channels))
@@ -74,6 +84,7 @@ def get_emg_context(label_detected: str) -> Optional[Tuple[str, str]]:
         print(f"⚠️ No EMG document found for exercises: {matched_exercises}")
         return None
 
+    # Format EMG context string for further processing
     emg_context = (
         f"Exercises {', '.join(matched_exercises)} matched to the detected object.\n"
         "EMG signals were retrieved from the following sources:\n"
@@ -86,11 +97,17 @@ def get_emg_context(label_detected: str) -> Optional[Tuple[str, str]]:
 
 @app.get("/")
 def ping():
+    """
+    Health check endpoint to verify server is running.
+    """
     return {"response": "OK"}
 
 
 @app.websocket("/ws")
 async def websocket_server(websocket: WebSocket):
+    """
+    WebSocket endpoint to receive keypoints data from clients.
+    """
     await websocket.accept()
     try:
         while True:
@@ -104,6 +121,10 @@ async def websocket_server(websocket: WebSocket):
 
 @app.post("/upload-image")
 def upload_image(request: ImageRequest):
+    """
+    Endpoint to process uploaded image, detect objects, suggest hand movements,
+    and optionally fuse results with EMG signal data.
+    """
     if not request.data:
         return {"error": "No image data provided."}
 
@@ -112,18 +133,18 @@ def upload_image(request: ImageRequest):
     image_data = request.data
     start_time = time.time()
 
-    # 1️⃣ Detección de objeto
+    # 1️⃣ Object detection using LLM
     detected_object_response = client.detect_object(selected_model, image_data)
     detected_object = client.extract_object_from_response(detected_object_response)
     print(f"🧠 Detected object: '{detected_object}'")
 
-    # 2️⃣ Movimiento sugerido
+    # 2️⃣ Suggest hand movement based on detected object
     suggested_movement_response = client.generate_suggested_movement(
         selected_model, detected_object
     )
     suggested_movement = client.extract_suggested_movement(suggested_movement_response)
 
-    # 3️⃣ Instrucciones estándar (solo visión)
+    # 3️⃣ Generate standard hand movement instructions (vision only)
     vision_hand_response = client.generate_hand_movements(
         HAND_PROMPT_3, selected_model, image_data
     )
@@ -131,7 +152,7 @@ def upload_image(request: ImageRequest):
     if not cleaned_vision_response.startswith("["):
         cleaned_vision_response = f"[{cleaned_vision_response}]"
 
-    # 4️⃣ Guardar respuesta solo visión
+    # 4️⃣ Save vision-only response to Firestore
     vision_result = {
         "hand_movements": cleaned_vision_response,
         "image_analysis": {
@@ -145,7 +166,7 @@ def upload_image(request: ImageRequest):
     }
     save_to_firestore(vision_result, collection="responses")
 
-    # 5️⃣ Intentar generar respuesta fusionada con EMG
+    # 5️⃣ Attempt to generate fused response with EMG data
     emg_result_tuple = get_emg_context(detected_object)
     if emg_result_tuple:
         emg_context, emg_source = emg_result_tuple

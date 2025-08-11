@@ -1,5 +1,7 @@
 # Import necessary modules and dependencies
+import logging
 import os
+import sys
 import time
 from typing import Optional, Tuple
 
@@ -7,12 +9,21 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.firebase.firestore import db, save_to_firestore
+from app.firebase.firestore import FirestoreHandler
 from models import ImageRequest
 from openAI.client import OpenAIClient
 from prompts.prompts import HAND_PROMPT_3, HAND_PROMPT_EMG_FUSION
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    stream=sys.stdout,
+)
+logger = logging.getLogger(__name__)
+
+
 # Load environment variables from .env file
+logger.info("Looking for secrets")
 load_dotenv()
 
 # Initialize FastAPI application
@@ -32,6 +43,8 @@ MODEL = "gpt-4.1-nano"
 API_KEY = os.getenv("OPENAI_API_KEY")
 RASP_API_URL = os.getenv("RASP_API_URL")
 
+cliente_de_prueba = FirestoreHandler()
+
 
 def get_emg_context(label_detected: str) -> Optional[Tuple[str, str]]:
     """
@@ -50,7 +63,7 @@ def get_emg_context(label_detected: str) -> Optional[Tuple[str, str]]:
     )
 
     if not matched_exercises:
-        print(f"⚠️ No EMG mapping for label: '{label_detected}'")
+        logger.warning(f"⚠️ No EMG mapping for label: '{label_detected}'")
         return None
 
     context_lines = []
@@ -58,7 +71,7 @@ def get_emg_context(label_detected: str) -> Optional[Tuple[str, str]]:
 
     # Iterate through EMG signal collections to find relevant data
     for collection_name in ["emg_signals", "emg_signals_db2"]:
-        docs = db.collection(collection_name).stream()
+        docs = cliente_de_prueba.db.collection(collection_name).stream()
         for doc in docs:
             emg_data = doc.to_dict()
             exercise_val = emg_data.get("exercise", "")
@@ -81,7 +94,7 @@ def get_emg_context(label_detected: str) -> Optional[Tuple[str, str]]:
             used_sources.add(collection_name.upper())
 
     if not context_lines:
-        print(f"⚠️ No EMG document found for exercises: {matched_exercises}")
+        logger.warning(f"⚠️ No EMG document found for exercises: {matched_exercises}")
         return None
 
     # Format EMG context string for further processing
@@ -136,7 +149,7 @@ def upload_image(request: ImageRequest):
     # 1️⃣ Object detection using LLM
     detected_object_response = client.detect_object(selected_model, image_data)
     detected_object = client.extract_object_from_response(detected_object_response)
-    print(f"🧠 Detected object: '{detected_object}'")
+    logger.info(f"🧠 Detected object: '{detected_object}'")
 
     # 2️⃣ Suggest hand movement based on detected object
     suggested_movement_response = client.generate_suggested_movement(
@@ -164,14 +177,14 @@ def upload_image(request: ImageRequest):
         "tags": [detected_object.lower(), selected_model],
         "processing_time_seconds": round(time.time() - start_time, 2),
     }
-    save_to_firestore(vision_result, collection="responses")
+    cliente_de_prueba.save_to_firestore(vision_result, collection="responses")
 
     # 5️⃣ Attempt to generate fused response with EMG data
     emg_result_tuple = get_emg_context(detected_object)
     if emg_result_tuple:
         emg_context, emg_source = emg_result_tuple
-        print(f"✅ EMG sources used: {emg_source}")
-        print("🔬 EMG context retrieved. Generating fused response...")
+        logger.info(f"✅ EMG sources used: {emg_source}")
+        logger.info("🔬 EMG context retrieved. Generating fused response...")
         fusion_prompt = HAND_PROMPT_EMG_FUSION.replace("{EMG_CONTEXT}", emg_context)
         emg_response = client.generate_hand_movements(
             fusion_prompt, selected_model, image_data
@@ -193,8 +206,8 @@ def upload_image(request: ImageRequest):
             "tags": [detected_object.lower(), selected_model, emg_source, "fusion_emg"],
             "processing_time_seconds": round(time.time() - start_time, 2),
         }
-        save_to_firestore(emg_result, collection="responses_emg_llm")
+        cliente_de_prueba.save_to_firestore(emg_result, collection="responses_emg_llm")
     else:
-        print("🚫 No EMG fusion generated.")
+        logger.warning("🚫 No EMG fusion generated.")
 
     return {"status": "OK", "detected_object": detected_object}
